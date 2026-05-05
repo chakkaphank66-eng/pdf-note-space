@@ -47,9 +47,16 @@ st.set_page_config(page_title="PDF Note Space 🩺", layout="wide")
 # --- 2. Custom CSS & Minimalist Design ---
 st.markdown("""
 <style>
+    /* 🌟 นำเข้าฟอนต์ Sarabun จาก Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
+    
+    html, body, [class*="st-"] {
+        font-family: 'Sarabun', sans-serif !important;
+    }
+
     .stApp { background-color: #F8FAFC; }
     .main-header { font-size: 2.2rem; font-weight: 800; color: #0F172A; margin-bottom: 1rem; letter-spacing: -0.5px; }
-    .stButton>button { border-radius: 8px; transition: all 0.3s; font-weight: 600; }
+    .stButton>button { border-radius: 8px; transition: all 0.3s; font-weight: 600; font-family: 'Sarabun', sans-serif !important; }
     .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
     
     /* 🌟 Minimalist Edit Box (สะอาดตา ทันสมัย) */
@@ -58,17 +65,23 @@ st.markdown("""
         border-radius: 16px; 
         padding: 24px; 
         background: #FFFFFF; 
-        font-size: 15px; 
-        line-height: 1.7;
+        font-size: 17px; /* เพิ่มขนาดฟอนต์ให้ Sarabun อ่านง่ายขึ้น */
+        line-height: 1.8;
         color: #334155;
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
     }
-    .edit-box h1, .edit-box h2, .edit-box h3 { color: #0F172A; }
+    .edit-box h1, .edit-box h2, .edit-box h3, .edit-box h4 { color: #0F172A; margin-top: 1.5rem; margin-bottom: 0.75rem; }
     .edit-box strong, .edit-box b { color: #0F172A; font-weight: 700; }
+    
+    /* 🌟 แยกบรรทัดรายการเป็นข้อๆ ให้ห่างกัน */
+    .edit-box ul, .edit-box ol { margin-top: 0.5rem; margin-bottom: 1rem; padding-left: 1.5rem; }
+    .edit-box li { margin-bottom: 12px; } /* ระยะห่างระหว่างข้อ */
+    .edit-box p { margin-bottom: 12px; }
+    
     /* Modern minimalist tables */
-    .edit-box table { width: 100%; border-collapse: collapse; margin: 15px 0; border-radius: 8px; overflow: hidden; }
-    .edit-box th { background-color: #F8FAFC; padding: 10px; border-bottom: 2px solid #E2E8F0; color: #475569; text-align: left; }
-    .edit-box td { padding: 10px; border-bottom: 1px solid #F1F5F9; }
+    .edit-box table { width: 100%; border-collapse: collapse; margin: 20px 0; border-radius: 8px; overflow: hidden; font-size: 16px; }
+    .edit-box th { background-color: #F8FAFC; padding: 12px; border-bottom: 2px solid #E2E8F0; color: #475569; text-align: left; }
+    .edit-box td { padding: 12px; border-bottom: 1px solid #F1F5F9; }
     
     /* Animation & Status Colors */
     @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(49, 130, 206, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(49, 130, 206, 0); } 100% { box-shadow: 0 0 0 0 rgba(49, 130, 206, 0); } }
@@ -193,14 +206,14 @@ with st.sidebar:
         try:
             genai.configure(api_key=api_key)
             all_models = [m.name.replace("models/", "") for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-            # กรองเอาเฉพาะรุ่น flash-lite เท่านั้น เพื่อป้องกันการสลับไปใช้รุ่นที่แพงกว่า
+            # กรองเอาเฉพาะรุ่น flash-lite เท่านั้น เพื่อป้องกันการสลับไปใช้รุ่นที่แพงกว่า (และบังคับเป็น Default)
             flash_models = [m for m in all_models if "flash-lite" in m.lower()] 
             
             if not flash_models:
                 flash_models = ["gemini-2.5-flash-lite"] # ล็อคชื่อไว้เผื่อ API คืนค่าชื่อแปลกๆ
             
             st.session_state.flash_models_list = flash_models
-            best_model = get_best_available_model(flash_models)
+            best_model = "gemini-2.5-flash-lite" # บังคับให้เริ่มด้วยตัวนี้เสมอ
             
             if is_locked:
                 st.info("🔒 ระบบล็อกการตั้งค่าขณะรัน")
@@ -524,8 +537,8 @@ if st.session_state.pdf_bytes:
                                 table {{ border-collapse: collapse; width: 100%; margin-top: 8px; }} 
                                 th {{ background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 4px; color: #334155; text-align: left; }}
                                 td {{ border: 1px solid #E2E8F0; padding: 4px; color: #475569; }}
-                                ul, ol {{ margin-top: 4px; margin-bottom: 4px; padding-left: 15px; }}
-                                li {{ margin-bottom: 3px; }}
+                                ul, ol {{ margin-top: 6px; margin-bottom: 6px; padding-left: 15px; }}
+                                li {{ margin-bottom: 8px; }} /* แยกบรรทัดรายการเป็นข้อๆ ใน PDF */
                                 """
                                 try: p_out.insert_htmlbox(box, f"<style>{css}</style><body>{html}</body>", archive=arch)
                                 except: p_out.insert_textbox(box, text_chunk, fontsize=f_size)
@@ -650,16 +663,17 @@ if st.session_state.pdf_bytes:
                 if want_content: 
                     content_instruction = (
                         "เนื้อหาหลัก (ห้ามข้ามเด็ดขาด! ให้อธิบายขยายความโดยแบ่งเป็น 3 หัวข้อย่อยดังนี้):\n"
-                        "1. **Concept หลัก:** (สรุปว่าหน้านี้กำลังสอนเรื่องอะไร)\n"
-                        "2. **กลไกและเหตุผล:** (อธิบายพยาธิสภาพหรือกลไกอย่างละเอียด **ต้องมีคำอธิบายเหตุผลโดยใช้คำว่า '...เพราะ...' เสมอ**)\n"
+                        "1. **Concept หลัก:** (สรุปว่าหน้านี้กำลังสอนเรื่องอะไร)\n\n"
+                        "2. **กลไกและเหตุผล:** (อธิบายพยาธิสภาพหรือกลไกอย่างละเอียด **ต้องมีคำอธิบายเหตุผลโดยใช้คำว่า '...เพราะ...' เสมอ**)\n\n"
                         "3. **การนำไปใช้ (Clinical Pearl):** (จุดเชื่อมโยงความรู้ไปใช้กับคนไข้จริงในคลินิก)\n"
                         "*(หมายเหตุ: ต้องเน้น **ตัวหนา** ที่คำศัพท์แพทย์หรือคำสำคัญเสมอ เพื่อให้ผู้อ่านไม่ข้ามคำสำคัญและจดจำได้นาน)*"
                     )
                     pattern_parts.append(content_instruction)
                 if want_summary: pattern_parts.append("High-Yield:\n- (สรุปจุดตายที่ออกสอบ กระชับสุดๆ)")
                 if want_quiz: 
-                    q_sec = f"Quiz:\n1. (คำถาม)\n2. (คำถาม)" if quiz_count >= 2 else f"Quiz:\n1. (คำถาม)"
-                    if want_answer: q_sec += f"\n\nเฉลย:\n1. (เฉลย)\n2. (เฉลย)" if quiz_count >= 2 else f"\n\nเฉลย:\n1. (เฉลย)"
+                    # เพิ่ม \n\n เพื่อบังคับให้ AI เว้นบรรทัดระหว่างข้อ
+                    q_sec = f"Quiz:\n1. (คำถาม)\n\n2. (คำถาม)" if quiz_count >= 2 else f"Quiz:\n1. (คำถาม)"
+                    if want_answer: q_sec += f"\n\nเฉลย:\n1. (เฉลย)\n\n2. (เฉลย)" if quiz_count >= 2 else f"\n\nเฉลย:\n1. (เฉลย)"
                     pattern_parts.append(q_sec)
                 strict_pattern = "\n\n".join(pattern_parts)
 
@@ -676,6 +690,7 @@ if st.session_state.pdf_bytes:
                 3. **ต้องเน้นที่การให้เหตุผลกับเหตุการณ์สำคัญ (เช่น อาการ/กลไก) ....เพราะ.... เสมอ** เพื่อให้ผู้อ่านเข้าใจและจดจำได้นาน
                 4. ตอบให้ครบตาม Pattern ด้านล่างเป๊ะๆ ห้ามสลับลำดับ ห้ามมีคำทักทาย 
                 5. หากเป็นหน้าว่างเปล่าจริงๆ (ไม่มีเนื้อหาการแพทย์เลย) ให้ตอบแค่คำว่า 'NON_CONTENT'
+                6. **เนื้อหา, Quiz, และเฉลย ที่มีการเขียนเป็นข้อๆ (เช่น 1., 2., 3. หรือ Bullet points) ให้เว้นบรรทัดแยกแต่ละข้อให้ชัดเจนเสมอ**
 
                 {strict_pattern}
                 """
