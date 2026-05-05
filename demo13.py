@@ -8,6 +8,8 @@ import time
 import datetime
 import markdown
 import re
+import os
+import pickle
 
 # --- 1. การตั้งค่าเริ่มต้น และ Session State ---
 keys_to_init = {
@@ -65,7 +67,48 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 3. ฟังก์ชันอัจฉริยะ (Helper Functions) ---
+# --- 3. ฟังก์ชันอัจฉริยะ (Helper Functions) และระบบ Auto-save ---
+
+# ฟังก์ชันเซฟข้อมูลลงไฟล์
+def save_workspace():
+    data_to_save = {
+        'pdf_bytes': st.session_state.pdf_bytes,
+        'pdf_name': st.session_state.pdf_name,
+        'processed_data': st.session_state.processed_data,
+        'global_data': st.session_state.global_data,
+        'global_context_text': st.session_state.global_context_text,
+        'global_map_list': st.session_state.global_map_list,
+        'selected_pages': st.session_state.selected_pages,
+        'full_summaries': st.session_state.full_summaries,
+        'user_api_key': st.session_state.user_api_key
+    }
+    try:
+        with open("autosave_workspace.pkl", "wb") as f:
+            pickle.dump(data_to_save, f)
+    except Exception:
+        pass
+
+# ฟังก์ชันโหลดข้อมูลกลับมาเมื่อเน็ตหลุด/รีเฟรช
+def load_workspace():
+    if os.path.exists("autosave_workspace.pkl"):
+        try:
+            with open("autosave_workspace.pkl", "rb") as f:
+                data = pickle.load(f)
+                for k, v in data.items():
+                    st.session_state[k] = v
+            return True
+        except Exception:
+            return False
+    return False
+
+# ฟังก์ชันลบไฟล์เซฟ (เมื่อกด Reset เปลี่ยนเอกสาร)
+def clear_workspace():
+    if os.path.exists("autosave_workspace.pkl"):
+        try:
+            os.remove("autosave_workspace.pkl")
+        except Exception:
+            pass
+
 def get_best_available_model(models_list):
     current_time = time.time()
     st.session_state.exhausted_models = {k: v for k, v in st.session_state.exhausted_models.items() if v > current_time}
@@ -126,6 +169,7 @@ with st.sidebar:
     api_input = st.text_input("🔑 ใส่ Gemini API Key:", type="password", value=st.session_state.user_api_key, disabled=is_locked)
     if api_input != st.session_state.user_api_key:
         st.session_state.user_api_key = api_input
+        save_workspace() # บันทึก API Key ถาวร
         st.rerun()
         
     api_key = st.session_state.user_api_key
@@ -202,6 +246,18 @@ with st.sidebar:
 st.markdown("<div class='main-header'>📚 PDF Note Space: Smart Reader</div>", unsafe_allow_html=True)
 
 if not st.session_state.pdf_bytes:
+    # 🌟 ฟีเจอร์ใหม่: ตรวจจับไฟล์เซฟอัตโนมัติ
+    if os.path.exists("autosave_workspace.pkl"):
+        st.info("💾 **พบงานที่ทำค้างไว้!** (ระบบ Auto-save ป้องกันเน็ตหลุด/หน้าจอดับ)")
+        if st.button("🔄 กู้คืนงานที่ทำค้างไว้", type="primary"):
+            with st.spinner("กำลังโหลดข้อมูล..."):
+                if load_workspace():
+                    st.success("กู้คืนสำเร็จ!")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("ไฟล์กู้คืนมีปัญหา หรือหมดอายุแล้ว")
+    
     uploaded_file = st.file_uploader("อัปโหลดสไลด์อาจารย์ (PDF) - รองรับสูงสุด 400 หน้า", type="pdf")
     if uploaded_file:
         with st.status(f"กำลังนำเข้าไฟล์: {uploaded_file.name}...", expanded=True) as status:
@@ -215,6 +271,8 @@ if not st.session_state.pdf_bytes:
             # Initialize Minimap placeholders
             st.session_state.global_map_list = [f"Page {i+1}" for i in range(len(doc_tmp))]
             
+            save_workspace() # บันทึกข้อมูลทันทีเมื่ออัปโหลดเสร็จ
+            
             status.update(label=f"✅ อัปโหลดสำเร็จ: {uploaded_file.name}", state="complete")
         st.rerun()
 else:
@@ -226,6 +284,7 @@ else:
         st.warning("ยืนยันการล้างข้อมูลทั้งหมด?")
         c1, c2 = st.columns(2)
         if c1.button("✅ ยืนยัน", type="primary"):
+            clear_workspace() # ลบไฟล์เซฟทิ้งด้วย
             for k in keys_to_init: del st.session_state[k]
             st.rerun()
         if c2.button("❌ ยกเลิก"):
@@ -251,6 +310,7 @@ if st.session_state.pdf_bytes and not is_locked:
                 st.rerun()
             if c_btn3.button("💾 ยืนยันการเลือกหน้า", type="primary"):
                 st.session_state.expander_open = False
+                save_workspace() # บันทึกหลังเลือกหน้าเสร็จ
                 st.rerun()
             
             st.write("---")
@@ -357,10 +417,12 @@ if st.session_state.pdf_bytes:
                 if ce1.button("💾 ยืนยันการแก้ไข", type="primary"):
                     st.session_state.processed_data[curr]["user_text"] = edited
                     st.session_state[f"editing_{curr}"] = False
+                    save_workspace() # Auto-save เมื่อแก้ไขเสร็จ
                     st.rerun()
                 if ce2.button("🔄 คืนค่าต้นฉบับ AI"):
                     st.session_state.processed_data[curr]["user_text"] = ""
                     st.session_state[f"editing_{curr}"] = False
+                    save_workspace() # Auto-save เมื่อรีเซ็ตข้อความ
                     st.rerun()
             else:
                 formatted_display = display_text.replace("High-Yield:", "<br><b style='color: #C53030; font-size: 1.3em;'>🚨 High-Yield:</b>").replace("Quiz:", "<br><b style='color: #2B6CB0;'>📝 Quiz:</b>").replace("เฉลย:", "<br><b>💡 เฉลย:</b>")
@@ -442,19 +504,15 @@ if st.session_state.pdf_bytes:
                                 try: p_out.insert_htmlbox(box, f"<style>{css}</style><body>{html}</body>", archive=arch)
                                 except: p_out.insert_textbox(box, text_chunk, fontsize=f_size)
                             
-                            # --- อัปเกรด Global Minimap ตรงนี้ ---
                             if want_minimap and len(st.session_state.global_map_list) > 0 and margin_right_pct > 0:
                                 map_lines = []
-                                # นำหัวข้อทั้งหมดมาสร้าง Map
                                 for m_idx, m_str in enumerate(st.session_state.global_map_list):
                                     if m_idx not in st.session_state.selected_pages:
-                                        continue # ข้ามหน้าที่ไม่ได้เลือกให้ทำ
+                                        continue 
                                         
                                     if m_idx == i: 
-                                        # หน้าปัจจุบันให้ทำตัวหนังสือสีแดงและมีลูกศรชี้
                                         map_lines.append(f"<b style='color: #E53E3E;'>➡️ หน้า {m_idx+1}: {m_str}</b>")
                                     else:
-                                        # หน้าอื่นๆ เป็นสีเทา
                                         map_lines.append(f"<span style='color: #718096;'>• หน้า {m_idx+1}: {m_str}</span>")
                                 
                                 map_text = "<b>📍 Minimap (สารบัญรวม):</b><br>" + "<br>".join(map_lines)
@@ -508,6 +566,7 @@ if st.session_state.pdf_bytes:
                 
                 # บันทึกความจำภาพรวม
                 st.session_state.global_context_text = "\n".join(context_lines)
+                save_workspace() # Auto-save
                 st.rerun()
 
             else:
@@ -537,6 +596,7 @@ if st.session_state.pdf_bytes:
                     
                     st.session_state.global_data[target_global] = {'topic': topic, 'summary': summary}
                     st.session_state.global_map_list[target_global] = topic
+                    save_workspace() # Auto-save หลังจากผ่านไปแต่ละหน้า
                 except Exception as e:
                     # ถ้า Error ให้ข้ามไปก่อน (ใส่ค่า default)
                     st.session_state.global_data[target_global] = {'topic': f"หน้า {target_global+1}", 'summary': ""}
@@ -580,7 +640,6 @@ if st.session_state.pdf_bytes:
                 img = Image.open(io.BytesIO(p_img.tobytes("png")))
 
                 pattern_parts = []
-                # ไม่ต้องขอ MINIMAP_HEADER แล้ว เพราะดึงจาก Phase 1 แล้ว
                 if want_content: pattern_parts.append(f"(อธิบายเนื้อหาโดยตรง เริ่มเนื้อหาเลย)")
                 if want_summary: pattern_parts.append("High-Yield:\n- (สรุปจุดตายที่ออกสอบ กระชับสุดๆ)")
                 if want_quiz: 
@@ -589,7 +648,6 @@ if st.session_state.pdf_bytes:
                     pattern_parts.append(q_sec)
                 strict_pattern = "\n\n".join(pattern_parts)
 
-                # อัปเดต Prompt ใหม่ ให้รับรู้ภาพรวม และเน้นการให้เหตุผล + ตัวหนา
                 prompt = f"""
                 คุณคืออาจารย์แพทย์สอน นสพ. ปี {med_year} ตอบเป็นภาษาไทย
                 
@@ -624,6 +682,8 @@ if st.session_state.pdf_bytes:
                         
                         is_success = True
                         st.session_state.processed_data[target] = {"ai_text": final_text, "user_text": "", "img": p_img.tobytes("png")}
+                        
+                        save_workspace() # Auto-save เมื่อประมวลผลหน้านี้สำเร็จ
                         
                     except Exception as e:
                         error_msg = str(e)
