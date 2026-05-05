@@ -144,7 +144,7 @@ def get_best_available_model(models_list):
     sorted_models = sorted(models_list, key=lambda x: next((i for i, p in enumerate(preferred) if p in x), 99))
     for m in sorted_models:
         if m not in st.session_state.exhausted_models: return m
-    return None
+    return "gemini-2.5-flash-lite" # ป้องกันบั๊ก คืนค่าตัวหลักเสมอถ้าหาไม่เจอ
 
 def calc_dynamic_fontsize(text, rect_width, rect_height):
     if not text or rect_width <= 0 or rect_height <= 0: return 12
@@ -206,14 +206,18 @@ with st.sidebar:
         try:
             genai.configure(api_key=api_key)
             all_models = [m.name.replace("models/", "") for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-            # กรองเอาเฉพาะรุ่น flash-lite เท่านั้น เพื่อป้องกันการสลับไปใช้รุ่นที่แพงกว่า (และบังคับเป็น Default)
+            
+            # กรองเอาเฉพาะรุ่น flash-lite เท่านั้น เพื่อป้องกันการสลับไปใช้รุ่นที่แพงกว่า
             flash_models = [m for m in all_models if "flash-lite" in m.lower()] 
             
+            # ล็อคชื่อไว้เผื่อ API คืนค่าชื่อแปลกๆ หรือหาไม่เจอ
             if not flash_models:
-                flash_models = ["gemini-2.5-flash-lite"] # ล็อคชื่อไว้เผื่อ API คืนค่าชื่อแปลกๆ
+                flash_models = ["gemini-2.5-flash-lite"]
+                
+            # 🌟 บังคับจัดเรียงให้ gemini-2.5-flash-lite ขึ้นเป็นอันดับ 1 (Default) เสมอ
+            flash_models = sorted(flash_models, key=lambda x: 0 if "gemini-2.5-flash-lite" in x else 1)
             
             st.session_state.flash_models_list = flash_models
-            best_model = "gemini-2.5-flash-lite" # บังคับให้เริ่มด้วยตัวนี้เสมอ
             
             if is_locked:
                 st.info("🔒 ระบบล็อกการตั้งค่าขณะรัน")
@@ -380,7 +384,8 @@ if st.session_state.pdf_bytes:
             """)
             c_start1, c_start2 = st.columns(2)
             if c_start1.button("✅ ยืนยันรันงาน", type="primary"):
-                if st.session_state.current_active_model in st.session_state.exhausted_models:
+                # เช็คเพื่อให้มั่นใจว่าเลือกโมเดลแน่นอน
+                if not st.session_state.current_active_model or st.session_state.current_active_model in st.session_state.exhausted_models:
                     st.session_state.current_active_model = get_best_available_model(st.session_state.flash_models_list)
                 
                 # กำหนด Phase เริ่มต้น
@@ -544,7 +549,8 @@ if st.session_state.pdf_bytes:
                                 except: p_out.insert_textbox(box, text_chunk, fontsize=f_size)
                             
                 if st.session_state.full_summaries:
-                    model_os = genai.GenerativeModel(get_best_available_model(st.session_state.flash_models_list) or "gemini-1.5-flash")
+                    # 🛠 แก้บั๊กจากเดิมที่เป็น gemini-1.5-flash ให้เป็น 2.5-flash-lite ตัวใหม่
+                    model_os = genai.GenerativeModel(get_best_available_model(st.session_state.flash_models_list) or "gemini-2.5-flash-lite")
                     os_prompt = f"สรุป High-yield สำหรับ นสพ.ปี {med_year} จัดรูปแบบมินิมอล **มีข้อมูลเปรียบเทียบให้ทำเป็น Markdown Table ทันที**:\n{st.session_state.full_summaries[:30000]}"
                     try:
                         safety = { HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE, HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE, HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE, HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE }
