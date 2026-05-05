@@ -32,11 +32,10 @@ keys_to_init = {
     'status_mode': 'blue',
     'user_api_key': "",
     
-    # --- ตัวแปรใหม่สำหรับระบบ Global Context & Minimap ---
+    # --- ตัวแปรใหม่สำหรับระบบ Global Context ---
     'phase': 'idle', # idle, global_scan, detail_scan
     'global_data': {}, # เก็บ {'topic': '', 'summary': ''} ของแต่ละหน้า
     'global_context_text': "", # ข้อความภาพรวมทั้งหมดที่รวมร่างแล้ว
-    'global_map_list': [] # สารบัญรวมทั้งหมดเพื่อทำ Minimap
 }
 
 for k, v in keys_to_init.items():
@@ -48,11 +47,28 @@ st.set_page_config(page_title="PDF Note Space 🩺", layout="wide")
 # --- 2. Custom CSS & Minimalist Design ---
 st.markdown("""
 <style>
-    .stApp { background-color: #F4F7F6; }
-    .main-header { font-size: 2.2rem; font-weight: 800; color: #1A365D; margin-bottom: 1rem; }
+    .stApp { background-color: #F8FAFC; }
+    .main-header { font-size: 2.2rem; font-weight: 800; color: #0F172A; margin-bottom: 1rem; letter-spacing: -0.5px; }
     .stButton>button { border-radius: 8px; transition: all 0.3s; font-weight: 600; }
-    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .edit-box { border: 1px solid #E2E8F0; border-radius: 10px; padding: 15px; background: #FFFFFF; font-size: 14px; line-height: 1.6;}
+    .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    
+    /* 🌟 Minimalist Edit Box (สะอาดตา ทันสมัย) */
+    .edit-box { 
+        border: 1px solid #F1F5F9; 
+        border-radius: 16px; 
+        padding: 24px; 
+        background: #FFFFFF; 
+        font-size: 15px; 
+        line-height: 1.7;
+        color: #334155;
+        box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+    }
+    .edit-box h1, .edit-box h2, .edit-box h3 { color: #0F172A; }
+    .edit-box strong, .edit-box b { color: #0F172A; font-weight: 700; }
+    /* Modern minimalist tables */
+    .edit-box table { width: 100%; border-collapse: collapse; margin: 15px 0; border-radius: 8px; overflow: hidden; }
+    .edit-box th { background-color: #F8FAFC; padding: 10px; border-bottom: 2px solid #E2E8F0; color: #475569; text-align: left; }
+    .edit-box td { padding: 10px; border-bottom: 1px solid #F1F5F9; }
     
     /* Animation & Status Colors */
     @keyframes pulse-blue { 0% { box-shadow: 0 0 0 0 rgba(49, 130, 206, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(49, 130, 206, 0); } 100% { box-shadow: 0 0 0 0 rgba(49, 130, 206, 0); } }
@@ -77,7 +93,6 @@ def save_workspace():
         'processed_data': st.session_state.processed_data,
         'global_data': st.session_state.global_data,
         'global_context_text': st.session_state.global_context_text,
-        'global_map_list': st.session_state.global_map_list,
         'selected_pages': st.session_state.selected_pages,
         'full_summaries': st.session_state.full_summaries,
         'user_api_key': st.session_state.user_api_key
@@ -149,16 +164,16 @@ def split_content_hq(text):
 
 def get_layout_preview(c_pos, hy_pos, q_pos):
     layout_map = {"ด้านขวา": [], "ด้านล่าง": [], "ด้านซ้าย": [], "ด้านบน": []}
-    layout_map[c_pos].append("<span style='color: #2D3748;'><b>เนื้อหา</b></span>")
-    layout_map[hy_pos].append("<span style='color: #E53E3E;'><b>High-Yield</b></span>")
-    layout_map[q_pos].append("<span style='color: #3182CE;'><b>Quiz</b></span>")
+    layout_map[c_pos].append("<span style='color: #334155;'><b>เนื้อหา</b></span>")
+    layout_map[hy_pos].append("<span style='color: #BE123C;'><b>High-Yield</b></span>")
+    layout_map[q_pos].append("<span style='color: #0369A1;'><b>Quiz</b></span>")
     
-    right_box = f"<div style='flex: 0.35; background: #F7FAFC; padding: 5px; font-size: 8px; border-left: 1px solid #E2E8F0;'>{'<br><br>'.join(layout_map['ด้านขวา'])}</div>" if layout_map['ด้านขวา'] else ""
-    left_box = f"<div style='flex: 0.35; background: #F7FAFC; padding: 5px; font-size: 8px; border-right: 1px solid #E2E8F0;'>{'<br><br>'.join(layout_map['ด้านซ้าย'])}</div>" if layout_map['ด้านซ้าย'] else ""
-    bottom_box = f"<div style='height: 40px; background: #F7FAFC; padding: 5px; font-size: 8px; border-top: 1px solid #E2E8F0; text-align: center;'>{' | '.join(layout_map['ด้านล่าง'])}</div>" if layout_map['ด้านล่าง'] else ""
-    top_box = f"<div style='height: 40px; background: #F7FAFC; padding: 5px; font-size: 8px; border-bottom: 1px solid #E2E8F0; text-align: center;'>{' | '.join(layout_map['ด้านบน'])}</div>" if layout_map['ด้านบน'] else ""
+    right_box = f"<div style='flex: 0.35; background: #F8FAFC; padding: 5px; font-size: 8px; border-left: 1px solid #E2E8F0;'>{'<br><br>'.join(layout_map['ด้านขวา'])}</div>" if layout_map['ด้านขวา'] else ""
+    left_box = f"<div style='flex: 0.35; background: #F8FAFC; padding: 5px; font-size: 8px; border-right: 1px solid #E2E8F0;'>{'<br><br>'.join(layout_map['ด้านซ้าย'])}</div>" if layout_map['ด้านซ้าย'] else ""
+    bottom_box = f"<div style='height: 40px; background: #F8FAFC; padding: 5px; font-size: 8px; border-top: 1px solid #E2E8F0; text-align: center;'>{' | '.join(layout_map['ด้านล่าง'])}</div>" if layout_map['ด้านล่าง'] else ""
+    top_box = f"<div style='height: 40px; background: #F8FAFC; padding: 5px; font-size: 8px; border-bottom: 1px solid #E2E8F0; text-align: center;'>{' | '.join(layout_map['ด้านบน'])}</div>" if layout_map['ด้านบน'] else ""
     
-    html_str = f"""<div style="width: 100%; height: 180px; border-radius: 10px; background: white; border: 2px solid #CBD5E0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">{top_box}<div style="flex: 1; display: flex; flex-direction: row;">{left_box}<div style="flex: 1; background: #EDF2F7; border: 2px dashed #A0AEC0; margin: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #718096; font-weight: bold; border-radius: 5px;">Slide</div>{right_box}</div>{bottom_box}</div>"""
+    html_str = f"""<div style="width: 100%; height: 180px; border-radius: 10px; background: white; border: 2px solid #E2E8F0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">{top_box}<div style="flex: 1; display: flex; flex-direction: row;">{left_box}<div style="flex: 1; background: #F1F5F9; border: 2px dashed #CBD5E1; margin: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #64748B; font-weight: bold; border-radius: 6px;">Slide</div>{right_box}</div>{bottom_box}</div>"""
     st.markdown(html_str, unsafe_allow_html=True)
 
 # --- 4. Sidebar: Note Settings ---
@@ -178,9 +193,11 @@ with st.sidebar:
         try:
             genai.configure(api_key=api_key)
             all_models = [m.name.replace("models/", "") for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-            flash_models = [m for m in all_models if "flash" in m.lower() or "pro" in m.lower()] 
+            # กรองเอาเฉพาะรุ่น flash-lite เท่านั้น เพื่อป้องกันการสลับไปใช้รุ่นที่แพงกว่า
+            flash_models = [m for m in all_models if "flash-lite" in m.lower()] 
             
-            flash_models = sorted(flash_models, key=lambda x: 0 if "gemini-2.5-flash-lite" in x else 1)
+            if not flash_models:
+                flash_models = ["gemini-2.5-flash-lite"] # ล็อคชื่อไว้เผื่อ API คืนค่าชื่อแปลกๆ
             
             st.session_state.flash_models_list = flash_models
             best_model = get_best_available_model(flash_models)
@@ -218,8 +235,6 @@ with st.sidebar:
     hy_pos = st.selectbox("วาง [High-Yield] ไว้ที่:", pos_options, index=1, disabled=is_locked) 
     quiz_pos = st.selectbox("วาง [Quiz] ไว้ที่:", pos_options, index=0, disabled=is_locked)
     
-    want_minimap = st.checkbox("เปิดใช้งาน Minimap (สารบัญรวม)", value=True, disabled=is_locked)
-    
     st.markdown("### 📋 ข้อมูลที่ต้องการ")
     want_content = st.checkbox("คำอธิบายเนื้อหา", value=True, disabled=is_locked)
     want_summary = st.checkbox("สรุป High-Yield", value=True, disabled=is_locked)
@@ -235,7 +250,7 @@ with st.sidebar:
     current_settings = {
         "year": med_year, "max_tok": max_tokens, 
         "m_right": margin_right_pct, "m_bottom": margin_bottom_pct,
-        "c_pos": content_pos, "hy_pos": hy_pos, "q_pos": quiz_pos, "map": want_minimap,
+        "c_pos": content_pos, "hy_pos": hy_pos, "q_pos": quiz_pos,
         "content": want_content, "summary": want_summary, "quiz": want_quiz, "count": quiz_count, "ans": want_answer
     }
     if not is_locked and st.session_state.last_settings and current_settings != st.session_state.last_settings:
@@ -267,9 +282,6 @@ if not st.session_state.pdf_bytes:
             st.session_state.selected_pages = list(range(len(doc_tmp)))
             for i in range(len(doc_tmp)):
                 st.session_state[f"sel_{i}"] = True
-            
-            # Initialize Minimap placeholders
-            st.session_state.global_map_list = [f"Page {i+1}" for i in range(len(doc_tmp))]
             
             save_workspace() # บันทึกข้อมูลทันทีเมื่ออัปโหลดเสร็จ
             
@@ -425,8 +437,20 @@ if st.session_state.pdf_bytes:
                     save_workspace() # Auto-save เมื่อรีเซ็ตข้อความ
                     st.rerun()
             else:
-                formatted_display = display_text.replace("High-Yield:", "<br><b style='color: #C53030; font-size: 1.3em;'>🚨 High-Yield:</b>").replace("Quiz:", "<br><b style='color: #2B6CB0;'>📝 Quiz:</b>").replace("เฉลย:", "<br><b>💡 เฉลย:</b>")
-                st.markdown(f"<div class='edit-box'>{formatted_display}</div>", unsafe_allow_html=True)
+                # 🌟 ทำความสะอาดข้อความและแปลง Markdown ก่อน
+                raw_text = display_text.replace("เนื้อหาหลัก (ห้ามข้ามเด็ดขาด! ให้อธิบายขยายความโดยแบ่งเป็น 3 หัวข้อย่อยดังนี้):", "")
+                html_content = markdown.markdown(raw_text, extensions=['tables'])
+                
+                # 🌟 สไตล์ Minimalist Modern สำหรับหัวข้อ High-Yield และ Quiz ในหน้าเว็บ
+                html_content = html_content.replace(
+                    "High-Yield:", "<div style='background-color: #FFF1F2; border-left: 4px solid #F43F5E; padding: 8px 16px; margin: 24px 0 12px 0; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);'><b style='color: #BE123C; font-size: 1.05em; letter-spacing: 0.5px;'>🚨 High-Yield</b></div>"
+                ).replace(
+                    "Quiz:", "<div style='background-color: #F0F9FF; border-left: 4px solid #0EA5E9; padding: 8px 16px; margin: 24px 0 12px 0; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);'><b style='color: #0369A1; font-size: 1.05em; letter-spacing: 0.5px;'>📝 Quiz</b></div>"
+                ).replace(
+                    "เฉลย:", "<div style='background-color: #F0FDF4; border-left: 4px solid #22C55E; padding: 8px 16px; margin: 16px 0 12px 0; border-radius: 0 8px 8px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.02);'><b style='color: #15803D; font-size: 1.05em; letter-spacing: 0.5px;'>💡 เฉลย</b></div>"
+                )
+                
+                st.markdown(f"<div class='edit-box'>{html_content}</div>", unsafe_allow_html=True)
                 if st.button("✏️ พิมพ์แก้ไขเนื้อหานี้"):
                     st.session_state[f"editing_{curr}"] = True
                     if st.session_state.is_running:
@@ -462,12 +486,6 @@ if st.session_state.pdf_bytes:
                         "ด้านบน": fitz.Rect(10, 10, w - 10, (h * margin_bottom_pct/100) - 10) 
                     }
                     
-                    minimap_rect = fitz.Rect(w + 10, new_h - (new_h/3), new_w - 10, new_h - 10)
-                    if want_minimap and margin_right_pct > 0:
-                        rects["ด้านขวา"] = fitz.Rect(w + 10, 10, new_w - 10, new_h - (new_h/3) - 10)
-                        minimap_bg = (0.93, 0.95, 0.97)
-                        p_out.draw_rect(minimap_rect, color=minimap_bg, fill=minimap_bg, width=0)
-                    
                     if i in st.session_state.processed_data:
                         raw_txt = st.session_state.processed_data[i]["user_text"] or st.session_state.processed_data[i]["ai_text"]
                         
@@ -485,42 +503,33 @@ if st.session_state.pdf_bytes:
                                 box = rects[pos]
                                 is_hy_alone = (text_chunk.strip().startswith("High-Yield:") and "Quiz:" not in text_chunk)
                                 
+                                # 🌟 สไตล์ Minimalist Modern สำหรับหัวข้อใน PDF
                                 if is_hy_alone:
-                                    text_chunk = text_chunk.replace("High-Yield:", "<b>🚨 High-Yield:</b><br>")
+                                    text_chunk = text_chunk.replace("High-Yield:", "<h4 style='color: #BE123C; border-bottom: 1.5px solid #FECDD3; margin-top: 8px; padding-bottom: 2px;'>🚨 High-Yield</h4>")
                                 else:
-                                    text_chunk = text_chunk.replace("High-Yield:", "<b>🚨 High-Yield:</b><br>").replace("Quiz:", "<b>📝 Quiz:</b><br>").replace("เฉลย:", "<b>💡 เฉลย:</b><br>")
+                                    text_chunk = text_chunk.replace("High-Yield:", "<h4 style='color: #BE123C; border-bottom: 1.5px solid #FECDD3; margin-top: 8px; padding-bottom: 2px;'>🚨 High-Yield</h4>") \
+                                                           .replace("Quiz:", "<h4 style='color: #0369A1; border-bottom: 1.5px solid #BAE6FD; margin-top: 12px; padding-bottom: 2px;'>📝 Quiz</h4>") \
+                                                           .replace("เฉลย:", "<h4 style='color: #15803D; border-bottom: 1.5px solid #BBF7D0; margin-top: 12px; padding-bottom: 2px;'>💡 เฉลย</h4>")
 
                                 f_size = calc_dynamic_fontsize(text_chunk, box.width, box.height)
                                 html = markdown.markdown(text_chunk, extensions=['tables'])
                                 
-                                color_css = "#9B2C2C" if is_hy_alone else "#2D3748"
+                                color_css = "#BE123C" if is_hy_alone else "#334155" # สี Slate สะอาดตา
                                 css = f"""
                                 @font-face {{ font-family: 'T'; src: url('THSarabunNew.ttf'); }}
                                 @font-face {{ font-family: 'T'; font-weight: bold; src: url('THSarabunNew Bold.ttf'); }}
-                                body {{ font-family: 'T'; font-size: {f_size}px; line-height: 1.3; color: {color_css}; }}
-                                b {{ font-size: 1.1em; }}
-                                table {{ border-collapse: collapse; width: 100%; }} th, td {{ border: 0.5px solid #CBD5E0; padding: 2px; }}
+                                body {{ font-family: 'T'; font-size: {f_size}px; line-height: 1.45; color: {color_css}; }}
+                                b, strong {{ color: #0F172A; }} 
+                                h4 {{ margin-bottom: 4px; font-size: 1.15em; }}
+                                table {{ border-collapse: collapse; width: 100%; margin-top: 8px; }} 
+                                th {{ background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 4px; color: #334155; text-align: left; }}
+                                td {{ border: 1px solid #E2E8F0; padding: 4px; color: #475569; }}
+                                ul, ol {{ margin-top: 4px; margin-bottom: 4px; padding-left: 15px; }}
+                                li {{ margin-bottom: 3px; }}
                                 """
                                 try: p_out.insert_htmlbox(box, f"<style>{css}</style><body>{html}</body>", archive=arch)
                                 except: p_out.insert_textbox(box, text_chunk, fontsize=f_size)
                             
-                            if want_minimap and len(st.session_state.global_map_list) > 0 and margin_right_pct > 0:
-                                map_lines = []
-                                for m_idx, m_str in enumerate(st.session_state.global_map_list):
-                                    if m_idx not in st.session_state.selected_pages:
-                                        continue 
-                                        
-                                    if m_idx == i: 
-                                        map_lines.append(f"<b style='color: #E53E3E;'>➡️ หน้า {m_idx+1}: {m_str}</b>")
-                                    else:
-                                        map_lines.append(f"<span style='color: #718096;'>• หน้า {m_idx+1}: {m_str}</span>")
-                                
-                                map_text = "<b>📍 Minimap (สารบัญรวม):</b><br>" + "<br>".join(map_lines)
-                                m_size = max(8, calc_dynamic_fontsize(map_text, minimap_rect.width, minimap_rect.height) - 4)
-                                css_m = f"body {{ font-family: 'T'; font-size: {m_size}px; line-height: 1.2; }}"
-                                try: p_out.insert_htmlbox(minimap_rect, f"<style>{css_m}</style><body>{map_text}</body>", archive=arch)
-                                except: pass
-
                 if st.session_state.full_summaries:
                     model_os = genai.GenerativeModel(get_best_available_model(st.session_state.flash_models_list) or "gemini-1.5-flash")
                     os_prompt = f"สรุป High-yield สำหรับ นสพ.ปี {med_year} จัดรูปแบบมินิมอล **มีข้อมูลเปรียบเทียบให้ทำเป็น Markdown Table ทันที**:\n{st.session_state.full_summaries[:30000]}"
@@ -533,7 +542,7 @@ if st.session_state.pdf_bytes:
                     
                     p_os = doc_out.new_page(width=595, height=842)
                     f_size_os = calc_dynamic_fontsize(os_html, 515, 762)
-                    css_os = f"@font-face {{ font-family: 'T'; src: url('THSarabunNew.ttf'); }} @font-face {{ font-family: 'T'; font-weight: bold; src: url('THSarabunNew Bold.ttf'); }} body {{ font-family: 'T'; font-size: {f_size_os}px; }} h2 {{ text-align: center; border-bottom: 2px solid #0369A1; color: #0369A1;}} table {{ width: 100%; border-collapse: collapse; margin: 10px 0;}} th, td {{ border: 1px solid #9CA3AF; padding: 6px; }} th {{ background-color: #E0F2FE; font-weight: bold; text-align: center; }}"
+                    css_os = f"@font-face {{ font-family: 'T'; src: url('THSarabunNew.ttf'); }} @font-face {{ font-family: 'T'; font-weight: bold; src: url('THSarabunNew Bold.ttf'); }} body {{ font-family: 'T'; font-size: {f_size_os}px; color: #334155; }} h2 {{ text-align: center; border-bottom: 2px solid #0EA5E9; color: #0F172A; padding-bottom: 5px;}} table {{ width: 100%; border-collapse: collapse; margin: 10px 0;}} th, td {{ border: 1px solid #E2E8F0; padding: 6px; }} th {{ background-color: #F8FAFC; color: #0F172A; font-weight: bold; text-align: center; }}"
                     p_os.insert_htmlbox(fitz.Rect(40,40,555,802), f"<style>{css_os}</style><body><h2>⭐ CLINICAL ONE-SHEET ⭐</h2>{os_html}</body>", archive=arch)
 
                 pdf_res = doc_out.tobytes()
@@ -561,7 +570,6 @@ if st.session_state.pdf_bytes:
                     g_info = st.session_state.global_data.get(idx, {})
                     topic = g_info.get('topic', f"หน้า {idx+1}")
                     summary = g_info.get('summary', "")
-                    st.session_state.global_map_list[idx] = topic # อัปเดต Map
                     context_lines.append(f"- หน้า {idx+1} ({topic}): {summary}")
                 
                 # บันทึกความจำภาพรวม
@@ -572,7 +580,7 @@ if st.session_state.pdf_bytes:
             else:
                 # กำลังสแกน Global
                 st.session_state.status_mode = 'purple'
-                action_html = f"<div class='status-purple'><b>🔍 [Phase 1/2] กำลังสแกนภาพรวม (หน้า {target_global+1} / {total_pages})</b><br>🤖 เพื่อสร้างระบบความจำ Minimap และ Context</div>"
+                action_html = f"<div class='status-purple'><b>🔍 [Phase 1/2] กำลังสแกนภาพรวม (หน้า {target_global+1} / {total_pages})</b><br>🤖 เพื่อสร้างระบบความจำ Context</div>"
                 action_placeholder.markdown(action_html, unsafe_allow_html=True)
                 
                 p_img = doc_in[target_global].get_pixmap(dpi=50) # ใช้ DPI ต่ำเพื่อความรวดเร็ว
@@ -580,7 +588,7 @@ if st.session_state.pdf_bytes:
                 
                 prompt_global = """
                 วิเคราะห์สไลด์หน้านี้อย่างรวดเร็ว ตอบกลับตามรูปแบบนี้เท่านั้น (ห้ามมีคำอื่น):
-                TOPIC: (ชื่อหัวข้อเรื่องของหน้านี้ สั้นๆ 1-3 คำ เพื่อทำสารบัญ)
+                TOPIC: (ชื่อหัวข้อเรื่องของหน้านี้ สั้นๆ 1-3 คำ)
                 SUMMARY: (สรุปใจความสำคัญของหน้านี้สั้นๆ 1 ประโยค เพื่อให้ AI ตัวอื่นรู้ว่าหน้านี้สอนเรื่องอะไร)
                 """
                 
@@ -595,7 +603,6 @@ if st.session_state.pdf_bytes:
                     summary = text.split("SUMMARY:")[1].strip() if "SUMMARY:" in text else "ข้อมูลสไลด์"
                     
                     st.session_state.global_data[target_global] = {'topic': topic, 'summary': summary}
-                    st.session_state.global_map_list[target_global] = topic
                     save_workspace() # Auto-save หลังจากผ่านไปแต่ละหน้า
                 except Exception as e:
                     # ถ้า Error ให้ข้ามไปก่อน (ใส่ค่า default)
@@ -640,7 +647,15 @@ if st.session_state.pdf_bytes:
                 img = Image.open(io.BytesIO(p_img.tobytes("png")))
 
                 pattern_parts = []
-                if want_content: pattern_parts.append(f"(อธิบายเนื้อหาโดยตรง เริ่มเนื้อหาเลย)")
+                if want_content: 
+                    content_instruction = (
+                        "เนื้อหาหลัก (ห้ามข้ามเด็ดขาด! ให้อธิบายขยายความโดยแบ่งเป็น 3 หัวข้อย่อยดังนี้):\n"
+                        "1. **Concept หลัก:** (สรุปว่าหน้านี้กำลังสอนเรื่องอะไร)\n"
+                        "2. **กลไกและเหตุผล:** (อธิบายพยาธิสภาพหรือกลไกอย่างละเอียด **ต้องมีคำอธิบายเหตุผลโดยใช้คำว่า '...เพราะ...' เสมอ**)\n"
+                        "3. **การนำไปใช้ (Clinical Pearl):** (จุดเชื่อมโยงความรู้ไปใช้กับคนไข้จริงในคลินิก)\n"
+                        "*(หมายเหตุ: ต้องเน้น **ตัวหนา** ที่คำศัพท์แพทย์หรือคำสำคัญเสมอ เพื่อให้ผู้อ่านไม่ข้ามคำสำคัญและจดจำได้นาน)*"
+                    )
+                    pattern_parts.append(content_instruction)
                 if want_summary: pattern_parts.append("High-Yield:\n- (สรุปจุดตายที่ออกสอบ กระชับสุดๆ)")
                 if want_quiz: 
                     q_sec = f"Quiz:\n1. (คำถาม)\n2. (คำถาม)" if quiz_count >= 2 else f"Quiz:\n1. (คำถาม)"
@@ -655,11 +670,12 @@ if st.session_state.pdf_bytes:
                 เพื่อให้คุณเข้าใจว่าหน้านี้เชื่อมโยงกับหน้าอื่นๆ อย่างไร:
                 {st.session_state.global_context_text}
                 
-                **คำเตือนและข้อบังคับสำคัญ:**
-                1. อธิบายเนื้อหาของสไลด์ในรูปภาพนี้ โดยอิงความสอดคล้องจาก "บริบทภาพรวม" ด้านบน เพื่อไม่ให้เนื้อหาหลุดกรอบ
+                **คำเตือนและข้อบังคับสำคัญ (ต้องทำตามอย่างเคร่งครัด):**
+                1. **ห้ามข้ามการอธิบายเนื้อหาเด็ดขาด!** แม้สไลด์จะมีคำน้อย ให้ทำหน้าที่ขยายความและอธิบายความเชื่อมโยงให้ นสพ. เข้าใจ
                 2. **ต้องเน้นตัวหนาที่คำสำคัญ** เพื่อเพิ่มสมาธิให้คนอ่าน ไม่ให้ข้ามคำสำคัญเด็ดขาด
-                3. **เน้นที่การให้เหตุผลกับเหตุการณ์สำคัญ (เช่น อาการ/กลไก) ....เพราะ....** เพื่อให้ผู้อ่านเข้าใจและจดจำได้นาน
-                4. ตอบให้ครบตาม Pattern ด้านล่างเป๊ะๆ ห้ามข้าม ห้ามมีคำทักทาย หากเป็นหน้าว่างให้ตอบ 'NON_CONTENT'
+                3. **ต้องเน้นที่การให้เหตุผลกับเหตุการณ์สำคัญ (เช่น อาการ/กลไก) ....เพราะ.... เสมอ** เพื่อให้ผู้อ่านเข้าใจและจดจำได้นาน
+                4. ตอบให้ครบตาม Pattern ด้านล่างเป๊ะๆ ห้ามสลับลำดับ ห้ามมีคำทักทาย 
+                5. หากเป็นหน้าว่างเปล่าจริงๆ (ไม่มีเนื้อหาการแพทย์เลย) ให้ตอบแค่คำว่า 'NON_CONTENT'
 
                 {strict_pattern}
                 """
