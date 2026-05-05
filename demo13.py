@@ -601,7 +601,7 @@ if st.session_state.pdf_bytes:
                     # ถ้า Error ให้ข้ามไปก่อน (ใส่ค่า default)
                     st.session_state.global_data[target_global] = {'topic': f"หน้า {target_global+1}", 'summary': ""}
                 
-                time.sleep(1.5)
+                time.sleep(0.1) # 🚀 ปลดล็อกความเร็ว: ลดการหน่วงเวลาลงเหลือ 0.1 วินาที (เดิม 1.5 วินาที)
                 st.rerun()
 
         # ==========================================
@@ -712,7 +712,7 @@ if st.session_state.pdf_bytes:
                             st.session_state.processed_data[target] = {"ai_text": f"⚠️ Error: {error_msg}", "user_text": "", "img": p_img.tobytes("png")}
                             is_success = True
 
-                time.sleep(3)
+                time.sleep(0.1) # 🚀 ปลดล็อกความเร็ว: ลดการหน่วงเวลาลงเหลือ 0.1 วินาที (เดิม 3 วินาที)
                 st.rerun()
             else:
                 st.session_state.is_running = False
