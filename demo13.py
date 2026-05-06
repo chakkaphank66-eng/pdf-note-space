@@ -147,12 +147,16 @@ def get_best_available_model(models_list):
     return "gemini-2.5-flash-lite" # ป้องกันบั๊ก คืนค่าตัวหลักเสมอถ้าหาไม่เจอ
 
 def calc_dynamic_fontsize(text, rect_width, rect_height):
-    if not text or rect_width <= 0 or rect_height <= 0: return 12
+    if not text or rect_width <= 0 or rect_height <= 0: return 18
     area = rect_width * rect_height
     char_count = len(text)
-    if char_count == 0: return 14
-    estimated_size = (area / (char_count * 0.55)) ** 0.5
-    return max(8, min(36, int(estimated_size))) 
+    if char_count == 0: return 18
+    
+    # 🌟 ปรับสูตรคำนวณให้ตัวหนังสือใหญ่ขึ้นพอดีกับช่องว่าง (ลดตัวหารจาก 0.55 เป็น 0.35)
+    estimated_size = (area / (char_count * 0.35)) ** 0.5
+    
+    # 🌟 บังคับฟอนต์ขั้นต่ำเป็น 16px (จากเดิม 8px) เพื่อให้อ่านง่ายไม่ต้องซูม และสูงสุดไม่เกิน 42px
+    return max(16, min(42, int(estimated_size))) 
 
 def split_content_hq(text):
     c_txt, hy_txt, q_txt = "", "", ""
@@ -536,14 +540,14 @@ if st.session_state.pdf_bytes:
                                 css = f"""
                                 @font-face {{ font-family: 'T'; src: url('THSarabunNew.ttf'); }}
                                 @font-face {{ font-family: 'T'; font-weight: bold; src: url('THSarabunNew Bold.ttf'); }}
-                                body {{ font-family: 'T'; font-size: {f_size}px; line-height: 1.45; color: {color_css}; }}
-                                b, strong {{ color: #0F172A; }} 
-                                h4 {{ margin-bottom: 4px; font-size: 1.15em; }}
-                                table {{ border-collapse: collapse; width: 100%; margin-top: 8px; }} 
-                                th {{ background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 4px; color: #334155; text-align: left; }}
-                                td {{ border: 1px solid #E2E8F0; padding: 4px; color: #475569; }}
-                                ul, ol {{ margin-top: 6px; margin-bottom: 6px; padding-left: 15px; }}
-                                li {{ margin-bottom: 8px; }} /* แยกบรรทัดรายการเป็นข้อๆ ใน PDF */
+                                body {{ font-family: 'T'; font-size: {f_size}px; line-height: 1.5; color: {color_css}; }}
+                                b, strong {{ color: #0F172A; font-weight: bold; }} 
+                                h4 {{ margin-bottom: 6px; font-size: 1.25em; }}
+                                table {{ border-collapse: collapse; width: 100%; margin-top: 10px; margin-bottom: 10px; }} 
+                                th {{ background-color: #F8FAFC; border: 1px solid #CBD5E1; padding: 6px; color: #334155; text-align: left; }}
+                                td {{ border: 1px solid #E2E8F0; padding: 6px; color: #475569; }}
+                                ul, ol {{ margin-top: 8px; margin-bottom: 8px; padding-left: 20px; }}
+                                li {{ margin-bottom: 10px; }} /* แยกบรรทัดรายการเป็นข้อๆ ใน PDF ให้อ่านง่ายขึ้น */
                                 """
                                 try: p_out.insert_htmlbox(box, f"<style>{css}</style><body>{html}</body>", archive=arch)
                                 except: p_out.insert_textbox(box, text_chunk, fontsize=f_size)
